@@ -21,6 +21,11 @@ def get_common_bacteria_set(protein_set, species):
         set_intersection = protein_set & proteins_set_in_specie
         if set_intersection == protein_set:
             common_bacteria_set.add(_)
+    print("common_bacteria_set\n")
+    with open("out/common_bacteria_set.txt", "w") as f:
+        for i in common_bacteria_set:
+            f.write(i + "\n")
+            print(i)
     return common_bacteria_set
 
 
@@ -36,5 +41,4 @@ if __name__ == '__main__':
     species = excel_file.sheet_names
 
     common_bacteria_set = get_common_bacteria_set(protein_set, species)
-    print("common_bacteria_set\n")
-    print(common_bacteria_set)
+
