@@ -1,6 +1,6 @@
 # CS4742 - Bioinformatics 
-## Assignment - Phylogenetic Trees
-## Group - LabRats
+### Assignment - Phylogenetic Trees
+#### Group - LabRats
 
 ---
 protein_set = {site-specific DNA-methyltransferase, LysR family transcriptional regulator,
