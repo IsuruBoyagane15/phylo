@@ -107,9 +107,9 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
 
 
 def build_phylogeny_trees(file: str):
-    #========================================================#
-    #       Added for overcome the error  (24th March 2021)  #
-    #========================================================#
+    #=====================================================================================================================#
+    #       Added for overcome the error  (24th March 2021)                                                               #
+    #=====================================================================================================================#
     records = SeqIO.parse(file, 'fasta')
     records = list(records) # make a copy, otherwise our generator
                             # is exhausted after calculating maxlen
@@ -128,10 +128,11 @@ def build_phylogeny_trees(file: str):
         SeqIO.write(records, f, 'fasta')
     # alignment = AlignIO.read(output_file, "fasta")
 
-    #========================================================#
-    #       End of newly added error mitigation method       #
-    #========================================================#
-    
+    #=====================================================================================================================#
+    #       End of newly added error mitigation method                                                                    #
+    #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
+    #=====================================================================================================================#
+
     aln = AlignIO.read(output_file, 'fasta')
 
     # Calculate the distance matrix
