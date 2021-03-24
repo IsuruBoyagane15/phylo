@@ -2,11 +2,14 @@
 ### Assignment - Phylogenetic Trees
 #### Group - LabRats
 
----
-protein_set = {site-specific DNA-methyltransferase, LysR family transcriptional regulator,
-helix-turn-helix domain-containing protein, efflux transporter outer
-membrane subunit}
----
+protein_set = {
+- site-specific DNA-methyltransferase, 
+- LysR family transcriptional regulator,
+- helix-turn-helix domain-containing protein,
+- efflux transporter outer membrane subunit
+\
+}
+
 
 STEP 1 - Get the set of bactria species which have all 4 proteins in protein_set
 
