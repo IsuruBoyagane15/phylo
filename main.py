@@ -1,12 +1,9 @@
 import os
 import pandas as pd
-import Bio.SeqIO as SeqIO
 import json
+
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-
-from skbio import DNA
-import skbio.alignment as a
 from Bio import Phylo
 from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
@@ -14,10 +11,6 @@ from Bio import AlignIO
 
 #Added 24th March 2021
 from Bio import Seq
-
-
-# pd.set_option('display.max_columns', None)
-# pd.set_option('display.max_rows', 1)
 
 
 # get df of each species sheet
@@ -76,83 +69,62 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
                 genomes_of_p.append(SeqRecord(c_b_seq, c_b, new_p, ""))
             SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/" + new_p +".fasta", "fasta")
 
-            # writing .phy files
-
-            # for i in range(len(species)):
-            #     species[i] = species[i].replace(".", "_")
-
-            # genomes[p] = {'species': species,
-            #               'genomes': genomes_of_p}
-
-            # hls_df = pd.DataFrame.from_dict(genomes[p])
-            # print(hls_df)
-
-            # with open("out/homologous_gene_sequences/" + p + ".phy", 'w') as f:
-            #     f.write("{:10} {}\n".format(hls_df.shape[0], hls_df.genomes.str.len()[0]))
-            #     for row in hls_df.iterrows():
-            #         f.write("{:10} {}\n".format(*row[1].tolist()))
-            # print("\n")
-
-            # with open("out/homologous_gene_sequences_fsa/" + p + ".fsa", 'w') as f:
-            #     for i in range(len(species)):
-            #         f.write("> "+ species[i] + "\n")
-            #         f.write(genomes_of_p[i] + "\n")
-
-            # short_seq_iterator = (record for record in genomes_of_p if len(record) < 300)
-            #
-            # SeqIO.write(short_seq_iterator, "short_seqs.fasta", "fasta")
-            # break
         with open('out/genomes.json', 'w', encoding='utf8') as json_file:
             json.dump(genomes, json_file, ensure_ascii=False)
 
 
 def build_phylogeny_trees(file: str):
-    #=====================================================================================================================#
-    #       Added for overcome the error  (24th March 2021)                                                               #
-    #=====================================================================================================================#
-    records = SeqIO.parse(file, 'fasta')
-    records = list(records) # make a copy, otherwise our generator
-                            # is exhausted after calculating maxlen
-    maxlen = max(len(record.seq) for record in records)
+    print("\n               " + file + "\n")
+    path = 'out/homologous_gene_sequences/' + file
+    padded_path = 'out/padded_homologous_gene_sequences/' + file
+    if not os.path.exists(padded_path):
+        #=====================================================================================================================#
+        #       Added for overcome the error  (24th March 2021)                                                               #
+        #=====================================================================================================================#
+        records = SeqIO.parse(path, 'fasta')
+        records = list(records) # make a copy, otherwise our generator
+                                # is exhausted after calculating maxlen
+        maxlen = max(len(record.seq) for record in records)
 
-    # pad sequences so that they all have the same length
-    for record in records:
-        if len(record.seq) != maxlen:
-            sequence = str(record.seq).ljust(maxlen, '.')
-            record.seq = Seq.Seq(sequence)
-    assert all(len(record.seq) == maxlen for record in records)
+        # pad sequences so that they all have the same length
+        for record in records:
+            if len(record.seq) != maxlen:
+                sequence = str(record.seq).ljust(maxlen, '.')
+                record.seq = Seq.Seq(sequence)
+        assert all(len(record.seq) == maxlen for record in records)
 
-    # write to temporary file and do alignment
-    output_file = '{}_padded.fasta'.format(os.path.splitext(file)[0])
-    with open(output_file, 'w') as f:
-        SeqIO.write(records, f, 'fasta')
-    # alignment = AlignIO.read(output_file, "fasta")
+        # write to temporary file and do alignment
+        with open(padded_path, 'w') as f:
+            SeqIO.write(records, f, 'fasta')
+        # alignment = AlignIO.read(output_file, "fasta")
 
-    #=====================================================================================================================#
-    #       End of newly added error mitigation method                                                                    #
-    #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
-    #=====================================================================================================================#
+        #=====================================================================================================================#
+        #       End of newly added error mitigation method                                                                    #
+        #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
+        #=====================================================================================================================#
 
-    aln = AlignIO.read(output_file, 'fasta')
+    else:
 
-    # Calculate the distance matrix
-    calculator = DistanceCalculator('identity')
-    dm = calculator.get_distance(aln)
+        aln = AlignIO.read(padded_path, 'fasta')
 
-    # Print the distance Matrix
-    print('\nDistance Matrix\n===================')
-    print(dm)
+        # Calculate the distance matrix
+        calculator = DistanceCalculator('identity')
+        dm = calculator.get_distance(aln)
 
-    # Construct the phylogenetic tree using UPGMA algorithm
-    constructor = DistanceTreeConstructor()
-    tree = constructor.upgma(dm)
+        # Print the distance Matrix
+        print('\nDistance Matrix\n===================')
+        print(dm)
 
-    # Draw the phylogenetic tree
-    Phylo.draw(tree)
+        # Construct the phylogenetic tree using UPGMA algorithm
+        constructor = DistanceTreeConstructor()
+        tree = constructor.upgma(dm)
 
-    # Print the phylogenetic tree in the terminal
-    print('\nPhylogenetic Tree\n===================')
-    Phylo.draw_ascii(tree)
+        # Draw the phylogenetic tree
+        Phylo.draw(tree)
+
+        # Print the phylogenetic tree in the terminal
+        print('\nPhylogenetic Tree\n===================')
+        Phylo.draw_ascii(tree)
 
 
 if __name__ == '__main__':
@@ -160,8 +132,6 @@ if __name__ == '__main__':
                    "LysR family transcriptional regulator",
                    "helix-turn-helix domain-containing protein",
                    "efflux transporter outer membrane subunit"]
-
-    # protein_set = {"FUSC family protein", "MFS transporter", "YraN family protein"}
 
     excel_file = pd.ExcelFile('protein_tables.xlsx')
     species = excel_file.sheet_names
@@ -174,4 +144,4 @@ if __name__ == '__main__':
 
     # STEP 4
     for file in os.listdir('out/homologous_gene_sequences'):
-        build_phylogeny_trees('out/homologous_gene_sequences/' +file.replace(" ", "_"))
+        build_phylogeny_trees(file.replace(" ", "_"))
