@@ -12,6 +12,9 @@ from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 from Bio import AlignIO
 
+#Added 24th March 2021
+from Bio import Seq
+
 
 # pd.set_option('display.max_columns', None)
 # pd.set_option('display.max_rows', 1)
@@ -104,27 +107,52 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
 
 
 def build_phylogeny_trees(file: str):
+    #=====================================================================================================================#
+    #       Added for overcome the error  (24th March 2021)                                                               #
+    #=====================================================================================================================#
+    records = SeqIO.parse(file, 'fasta')
+    records = list(records) # make a copy, otherwise our generator
+                            # is exhausted after calculating maxlen
+    maxlen = max(len(record.seq) for record in records)
 
-        aln = AlignIO.read(file, 'fasta')
+    # pad sequences so that they all have the same length
+    for record in records:
+        if len(record.seq) != maxlen:
+            sequence = str(record.seq).ljust(maxlen, '.')
+            record.seq = Seq.Seq(sequence)
+    assert all(len(record.seq) == maxlen for record in records)
 
-        # Calculate the distance matrix
-        calculator = DistanceCalculator('identity')
-        dm = calculator.get_distance(aln)
+    # write to temporary file and do alignment
+    output_file = '{}_padded.fasta'.format(os.path.splitext(file)[0])
+    with open(output_file, 'w') as f:
+        SeqIO.write(records, f, 'fasta')
+    # alignment = AlignIO.read(output_file, "fasta")
 
-        # Print the distance Matrix
-        print('\nDistance Matrix\n===================')
-        print(dm)
+    #=====================================================================================================================#
+    #       End of newly added error mitigation method                                                                    #
+    #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
+    #=====================================================================================================================#
 
-        # Construct the phylogenetic tree using UPGMA algorithm
-        constructor = DistanceTreeConstructor()
-        tree = constructor.upgma(dm)
+    aln = AlignIO.read(output_file, 'fasta')
 
-        # Draw the phylogenetic tree
-        Phylo.draw(tree)
+    # Calculate the distance matrix
+    calculator = DistanceCalculator('identity')
+    dm = calculator.get_distance(aln)
 
-        # Print the phylogenetic tree in the terminal
-        print('\nPhylogenetic Tree\n===================')
-        Phylo.draw_ascii(tree)
+    # Print the distance Matrix
+    print('\nDistance Matrix\n===================')
+    print(dm)
+
+    # Construct the phylogenetic tree using UPGMA algorithm
+    constructor = DistanceTreeConstructor()
+    tree = constructor.upgma(dm)
+
+    # Draw the phylogenetic tree
+    Phylo.draw(tree)
+
+    # Print the phylogenetic tree in the terminal
+    print('\nPhylogenetic Tree\n===================')
+    Phylo.draw_ascii(tree)
 
 
 if __name__ == '__main__':
