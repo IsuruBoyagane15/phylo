@@ -33,10 +33,9 @@ def get_common_bacteria_set(protein_set, species):
         for _ in species:
             specie_df = read_data(_)
             proteins_set_in_specie = set(specie_df['Protein name'])
-            set_intersection = set(protein_set) & proteins_set_in_specie
-            if set_intersection == protein_set:
+            set_intersection = set(protein_set).intersection(proteins_set_in_specie)
+            if set_intersection == set(protein_set):
                 common_bacteria_set.append(_)
-        print("common_bacteria_set\n")
         with open("out/common_bacteria_set.txt", "w") as f:
             for i in common_bacteria_set:
                 f.write(i + "\n")
@@ -48,7 +47,7 @@ def get_common_bacteria_set(protein_set, species):
 # STEP 3 : extract gene sequence for each protein in protein_set and for each species in common_bacteria_set
 def get_homologous_gene_sequences(protein_set, common_bacteria_set):
     print("                     HOMOLOGOUS GENE SEQUENCE")
-    if not os.path.exists('out/genomes.json'):
+    if not os.path.exists('out/genomes.txt'):
         genomes = {}
         for p in protein_set:
             new_p = p.replace(" ", "_")
@@ -67,10 +66,11 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
                     c_b_seq = seq_record.seq[start:stop + 1]
 
                 genomes_of_p.append(SeqRecord(c_b_seq, c_b, new_p, ""))
+            genomes['p'] = genomes_of_p
             SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/" + new_p +".fasta", "fasta")
 
-        with open('out/genomes.json', 'w', encoding='utf8') as json_file:
-            json.dump(genomes, json_file, ensure_ascii=False)
+            with open('out/genomes.txt', 'a') as genomes_file:
+                genomes_file.write(p + " - " + str(genomes_of_p))
 
 
 def build_phylogeny_trees(file: str):
@@ -103,28 +103,26 @@ def build_phylogeny_trees(file: str):
         #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
         #=====================================================================================================================#
 
-    else:
+    aln = AlignIO.read(padded_path, 'fasta')
 
-        aln = AlignIO.read(padded_path, 'fasta')
+    # Calculate the distance matrix
+    calculator = DistanceCalculator('identity')
+    dm = calculator.get_distance(aln)
 
-        # Calculate the distance matrix
-        calculator = DistanceCalculator('identity')
-        dm = calculator.get_distance(aln)
+    # Print the distance Matrix
+    print('\nDistance Matrix\n===================')
+    print(dm)
 
-        # Print the distance Matrix
-        print('\nDistance Matrix\n===================')
-        print(dm)
+    # Construct the phylogenetic tree using UPGMA algorithm
+    constructor = DistanceTreeConstructor()
+    tree = constructor.upgma(dm)
 
-        # Construct the phylogenetic tree using UPGMA algorithm
-        constructor = DistanceTreeConstructor()
-        tree = constructor.upgma(dm)
+    # Draw the phylogenetic tree
+    Phylo.draw(tree)
 
-        # Draw the phylogenetic tree
-        Phylo.draw(tree)
-
-        # Print the phylogenetic tree in the terminal
-        print('\nPhylogenetic Tree\n===================')
-        Phylo.draw_ascii(tree)
+    # Print the phylogenetic tree in the terminal
+    print('\nPhylogenetic Tree\n===================')
+    Phylo.draw_ascii(tree)
 
 
 if __name__ == '__main__':
