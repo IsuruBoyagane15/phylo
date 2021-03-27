@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import json
 
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
@@ -9,8 +8,7 @@ from Bio.Phylo.TreeConstruction import DistanceCalculator
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 from Bio import AlignIO
 
-#Added 24th March 2021
-from Bio import Seq
+from Bio.Align.Applications import ClustalOmegaCommandline
 
 
 # get df of each species sheet
@@ -67,62 +65,46 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
 
                 genomes_of_p.append(SeqRecord(c_b_seq, c_b, new_p, ""))
             genomes['p'] = genomes_of_p
-            SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/" + new_p +".fasta", "fasta")
+            SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/" + new_p + ".fasta", "fasta")
 
             with open('out/genomes.txt', 'a') as genomes_file:
                 genomes_file.write(p + " - " + str(genomes_of_p))
 
 
-def build_phylogeny_trees(file: str):
-    print("\n               " + file + "\n")
-    path = 'out/homologous_gene_sequences/' + file
-    padded_path = 'out/padded_homologous_gene_sequences/' + file
-    if not os.path.exists(padded_path):
-        #=====================================================================================================================#
-        #       Added for overcome the error  (24th March 2021)                                                               #
-        #=====================================================================================================================#
-        records = SeqIO.parse(path, 'fasta')
-        records = list(records) # make a copy, otherwise our generator
-                                # is exhausted after calculating maxlen
-        maxlen = max(len(record.seq) for record in records)
+# STEP 4 : build phylogenetic trees
+def build_phylogeny_trees():
+    path = "out/homologous_gene_sequences/"
+    out_path = "out/aligned_homologous_gene_sequences/"
+    cmd_file_path = 'out/clustal_commonds.txt'
 
-        # pad sequences so that they all have the same length
-        for record in records:
-            if len(record.seq) != maxlen:
-                sequence = str(record.seq).ljust(maxlen, '.')
-                record.seq = Seq.Seq(sequence)
-        assert all(len(record.seq) == maxlen for record in records)
+    for homologous_gene_sequence in os.listdir(path):
+        in_file = path + homologous_gene_sequence
+        out_file = out_path + homologous_gene_sequence
 
-        # write to temporary file and do alignment
-        with open(padded_path, 'w') as f:
-            SeqIO.write(records, f, 'fasta')
-        # alignment = AlignIO.read(output_file, "fasta")
+        if not os.path.exists(out_file):
+            clustalomega_cline = ClustalOmegaCommandline(infile=in_file, outfile=out_file, verbose=True, auto=True)
+            os.system(str(clustalomega_cline))
 
-        #=====================================================================================================================#
-        #       End of newly added error mitigation method                                                                    #
-        #       https://stackoverflow.com/questions/32833230/biopython-alignio-valueerror-says-strings-must-be-same-length    #
-        #=====================================================================================================================#
+        msa = AlignIO.read(out_file, 'fasta')
 
-    aln = AlignIO.read(padded_path, 'fasta')
+        # Calculate the distance matrix
+        calculator = DistanceCalculator('identity')
+        dm = calculator.get_distance(msa)
 
-    # Calculate the distance matrix
-    calculator = DistanceCalculator('identity')
-    dm = calculator.get_distance(aln)
+        # Print the distance Matrix
+        print('\nDistance Matrix\n===================')
+        print(dm)
 
-    # Print the distance Matrix
-    print('\nDistance Matrix\n===================')
-    print(dm)
+        # Construct the phylogenetic tree using UPGMA algorithm
+        constructor = DistanceTreeConstructor()
+        tree = constructor.upgma(dm)
 
-    # Construct the phylogenetic tree using UPGMA algorithm
-    constructor = DistanceTreeConstructor()
-    tree = constructor.upgma(dm)
+        # Draw the phylogenetic tree
+        Phylo.draw(tree)
 
-    # Draw the phylogenetic tree
-    Phylo.draw(tree)
-
-    # Print the phylogenetic tree in the terminal
-    print('\nPhylogenetic Tree\n===================')
-    Phylo.draw_ascii(tree)
+        # Print the phylogenetic tree in the terminal
+        print('\nPhylogenetic Tree\n', homologous_gene_sequence)
+        Phylo.draw_ascii(tree)
 
 
 if __name__ == '__main__':
@@ -141,5 +123,4 @@ if __name__ == '__main__':
     get_homologous_gene_sequences(protein_set, common_bacteria_set)
 
     # STEP 4
-    for file in os.listdir('out/homologous_gene_sequences'):
-        build_phylogeny_trees(file.replace(" ", "_"))
+    build_phylogeny_trees()
