@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 
@@ -9,6 +10,10 @@ from Bio.Phylo.TreeConstruction import DistanceTreeConstructor
 from Bio import AlignIO
 
 from Bio.Align.Applications import ClustalOmegaCommandline
+
+
+import dendropy
+from dendropy.calculate import treecompare
 
 
 # get df of each species sheet
@@ -105,6 +110,34 @@ def build_phylogeny_trees():
         # Print the phylogenetic tree in the terminal
         print('\nPhylogenetic Tree\n', homologous_gene_sequence)
         Phylo.draw_ascii(tree)
+        Phylo.write([tree], 'out/trees/' + homologous_gene_sequence + '_tree.nex', 'nexus')
+
+
+def calculate_tree_distance():
+    tree_distances = {}
+    print("                         TREE DISTANCES\n")
+    for i in os.listdir('out/trees'):
+        tree_distances[i] = {}
+        print(i, "\n")
+        for j in os.listdir('out/trees'):
+            if i >= j:
+                continue
+            else:
+                tns = dendropy.TaxonNamespace()
+                tree1 = dendropy.Tree.get_from_path(
+                    'out/trees/' + i,
+                    'nexus',
+                    taxon_namespace=tns,)
+                tree2 = dendropy.Tree.get_from_path(
+                    'out/trees/' + j,
+                    "nexus",
+                    taxon_namespace=tns)
+                tree1.encode_bipartitions()
+                tree2.encode_bipartitions()
+                tree_distances[i][j] = round(treecompare.weighted_robinson_foulds_distance(tree1, tree2),3)
+        print("\n")
+    with open('out/tree_distances.json', 'w') as f:
+        json.dump(tree_distances, f)
 
 
 if __name__ == '__main__':
@@ -124,3 +157,8 @@ if __name__ == '__main__':
 
     # STEP 4
     build_phylogeny_trees()
+
+    # STEP 5
+    calculate_tree_distance()
+
+
