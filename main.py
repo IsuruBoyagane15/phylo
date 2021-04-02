@@ -65,12 +65,12 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
                 first_index = df_p.first_valid_index()
                 start, stop = df_p.loc[first_index]['Start'], df_p.loc[first_index]['Stop']
 
-                for seq_record in SeqIO.parse(open('fasta/' + c_b + '.fasta'), "fasta"):
+                for seq_record in SeqIO.parse(open('fasta/{}.fasta'.format(c_b)), "fasta"):
                     c_b_seq = seq_record.seq[start:stop + 1]
 
                 genomes_of_p.append(SeqRecord(c_b_seq, c_b, new_p, ""))
             genomes['p'] = genomes_of_p
-            SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/" + new_p + ".fasta", "fasta")
+            SeqIO.write(genomes_of_p, "out/homologous_gene_sequences/{}.fasta".format(new_p), "fasta")
 
             with open('out/genomes.txt', 'a') as genomes_file:
                 genomes_file.write(p + " - " + str(genomes_of_p))
@@ -80,7 +80,6 @@ def get_homologous_gene_sequences(protein_set, common_bacteria_set):
 def build_phylogeny_trees():
     path = "out/homologous_gene_sequences/"
     out_path = "out/aligned_homologous_gene_sequences/"
-    cmd_file_path = 'out/clustal_commonds.txt'
 
     for homologous_gene_sequence in os.listdir(path):
         in_file = path + homologous_gene_sequence
@@ -110,7 +109,7 @@ def build_phylogeny_trees():
         # Print the phylogenetic tree in the terminal
         print('\nPhylogenetic Tree\n', homologous_gene_sequence)
         Phylo.draw_ascii(tree)
-        Phylo.write([tree], 'out/trees/' + homologous_gene_sequence + '_tree.nex', 'nexus')
+        Phylo.write([tree], 'out/trees/{}_tree.nex'.format(homologous_gene_sequence), 'nexus')
 
 
 def calculate_tree_distance():
@@ -125,11 +124,11 @@ def calculate_tree_distance():
             else:
                 tns = dendropy.TaxonNamespace()
                 tree1 = dendropy.Tree.get_from_path(
-                    'out/trees/' + i,
+                    'out/trees/{}'.format(i),
                     'nexus',
                     taxon_namespace=tns,)
                 tree2 = dendropy.Tree.get_from_path(
-                    'out/trees/' + j,
+                    'out/trees/{}'.format(j),
                     "nexus",
                     taxon_namespace=tns)
                 tree1.encode_bipartitions()
